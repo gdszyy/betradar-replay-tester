@@ -89,4 +89,220 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ============ Match Queries ============
+
+import { Match, InsertMatch, matches, ReplaySession, InsertReplaySession, replaySessions, ReplayPlaylistItem, InsertReplayPlaylistItem, replayPlaylist, Message, InsertMessage, messages } from "../drizzle/schema";
+import { desc } from "drizzle-orm";
+
+export async function createMatch(match: InsertMatch): Promise<Match | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.insert(matches).values(match);
+    if (result[0]?.insertId) {
+      return await getMatchById(Number(result[0].insertId));
+    }
+    return null;
+  } catch (error) {
+    console.error("[Database] Failed to create match:", error);
+    return null;
+  }
+}
+
+export async function getMatchById(id: number): Promise<Match | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(matches).where(eq(matches.id, id)).limit(1);
+  return result[0] || null;
+}
+
+export async function getMatchByMatchId(matchId: string): Promise<Match | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(matches).where(eq(matches.matchId, matchId)).limit(1);
+  return result[0] || null;
+}
+
+export async function getAllMatches(): Promise<Match[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(matches).orderBy(desc(matches.scheduledTime));
+}
+
+export async function upsertMatch(match: InsertMatch): Promise<Match | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    await db.insert(matches).values(match).onDuplicateKeyUpdate({
+      set: {
+        name: match.name,
+        sportType: match.sportType,
+        scheduledTime: match.scheduledTime,
+        status: match.status,
+        homeTeam: match.homeTeam,
+        awayTeam: match.awayTeam,
+        rawData: match.rawData,
+        updatedAt: new Date(),
+      },
+    });
+    return await getMatchByMatchId(match.matchId);
+  } catch (error) {
+    console.error("[Database] Failed to upsert match:", error);
+    return null;
+  }
+}
+
+// ============ Replay Session Queries ============
+
+export async function createReplaySession(session: InsertReplaySession): Promise<ReplaySession | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.insert(replaySessions).values(session);
+    if (result[0]?.insertId) {
+      return await getReplaySessionById(Number(result[0].insertId));
+    }
+    return null;
+  } catch (error) {
+    console.error("[Database] Failed to create replay session:", error);
+    return null;
+  }
+}
+
+export async function getReplaySessionById(id: number): Promise<ReplaySession | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(replaySessions).where(eq(replaySessions.id, id)).limit(1);
+  return result[0] || null;
+}
+
+export async function getActiveReplaySession(): Promise<ReplaySession | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(replaySessions)
+    .where(eq(replaySessions.status, "playing"))
+    .orderBy(desc(replaySessions.startedAt))
+    .limit(1);
+  return result[0] || null;
+}
+
+export async function updateReplaySessionStatus(id: number, status: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  
+  try {
+    await db.update(replaySessions)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(replaySessions.id, id));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to update replay session status:", error);
+    return false;
+  }
+}
+
+// ============ Replay Playlist Queries ============
+
+export async function addToPlaylist(item: InsertReplayPlaylistItem): Promise<ReplayPlaylistItem | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.insert(replayPlaylist).values(item);
+    if (result[0]?.insertId) {
+      const inserted = await db.select().from(replayPlaylist)
+        .where(eq(replayPlaylist.id, Number(result[0].insertId)))
+        .limit(1);
+      return inserted[0] || null;
+    }
+    return null;
+  } catch (error) {
+    console.error("[Database] Failed to add to playlist:", error);
+    return null;
+  }
+}
+
+export async function getPlaylistBySessionId(sessionId: number): Promise<ReplayPlaylistItem[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(replayPlaylist)
+    .where(eq(replayPlaylist.sessionId, sessionId))
+    .orderBy(replayPlaylist.playOrder);
+}
+
+export async function removeFromPlaylist(sessionId: number, matchId: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  
+  try {
+    const { and } = await import("drizzle-orm");
+    await db.delete(replayPlaylist)
+      .where(and(
+        eq(replayPlaylist.sessionId, sessionId),
+        eq(replayPlaylist.matchId, matchId)
+      ));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to remove from playlist:", error);
+    return false;
+  }
+}
+
+// ============ Message Queries ============
+
+export async function saveMessage(message: InsertMessage): Promise<Message | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.insert(messages).values(message);
+    if (result[0]?.insertId) {
+      const inserted = await db.select().from(messages)
+        .where(eq(messages.id, Number(result[0].insertId)))
+        .limit(1);
+      return inserted[0] || null;
+    }
+    return null;
+  } catch (error) {
+    console.error("[Database] Failed to save message:", error);
+    return null;
+  }
+}
+
+export async function getMessagesBySessionId(sessionId: number, limit: number = 100): Promise<Message[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(messages)
+    .where(eq(messages.sessionId, sessionId))
+    .orderBy(desc(messages.receivedAt))
+    .limit(limit);
+}
+
+export async function getMessagesByMatchId(matchId: string, limit: number = 100): Promise<Message[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(messages)
+    .where(eq(messages.matchId, matchId))
+    .orderBy(desc(messages.receivedAt))
+    .limit(limit);
+}
+
+export async function getAllMessages(limit: number = 100): Promise<Message[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(messages)
+    .orderBy(desc(messages.receivedAt))
+    .limit(limit);
+}

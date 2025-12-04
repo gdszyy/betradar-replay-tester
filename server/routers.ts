@@ -1,6 +1,9 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
+import { replayRouter } from "./routers/replay";
+import { databaseRouter } from "./routers/database";
+import { websocketRouter } from "./routers/websocket";
 import { publicProcedure, router } from "./_core/trpc";
 
 export const appRouter = router({
@@ -17,12 +20,14 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  // Replay control router
+  replay: replayRouter,
+  
+  // Database operations router
+  db: databaseRouter,
+  
+  // WebSocket operations router
+  ws: websocketRouter,
 });
 
 export type AppRouter = typeof appRouter;
