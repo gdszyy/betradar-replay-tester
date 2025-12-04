@@ -56,10 +56,14 @@ export default function ReplayTester() {
 
   const { data: replayStatusData } = trpc.replay.getStatus.useQuery(undefined, {
     refetchInterval: 2000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const { data: playlist } = trpc.replay.getPlaylist.useQuery(undefined, {
     refetchInterval: 3000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   // tRPC mutations

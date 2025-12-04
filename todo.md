@@ -180,3 +180,11 @@
 - 前端需要处理大量消息的性能优化
 - 需要支持多场比赛同时 Replay
 - 播放控制需要精确的状态同步
+
+## 错误修复
+
+- [x] 修改 Replay API 为直接调用 Betradar 官方 API (https://api.betradar.com/v1/replay/)
+- [x] 移除 Python Replay 服务依赖
+- [x] 修复 Betradar API 认证（使用 x-access-token header）
+- [x] 优化前端 API 错误处理（避免频繁错误提示）
+- [x] 验证所有 API 端点正常工作
