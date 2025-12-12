@@ -67,11 +67,20 @@ export default function ReplayTester() {
     refetchOnWindowFocus: false,
   });
 
-  const { data: playlist } = trpc.replay.getPlaylist.useQuery(undefined, {
+  const { data: betradarPlaylist } = trpc.replay.getPlaylist.useQuery(undefined, {
     refetchInterval: 3000,
     retry: false,
     refetchOnWindowFocus: false,
   });
+
+  const { data: activeSession } = trpc.db.getActiveSession.useQuery();
+  const { data: dbPlaylist } = trpc.db.getPlaylist.useQuery(
+    { sessionId: activeSession?.id || 0 },
+    { enabled: !!activeSession?.id, refetchInterval: 3000 }
+  );
+
+  // Use Betradar playlist if available, otherwise fall back to database
+  const playlist = betradarPlaylist || { events: dbPlaylist?.map((item: any) => ({ id: item.matchId })) || [] };
 
   // tRPC mutations
   const startReplay = trpc.replay.start.useMutation({
@@ -193,13 +202,17 @@ export default function ReplayTester() {
 
   const handleAddMatch = () => {
     if (!newMatchId.trim()) {
-      toast.error("Please enter a match ID");
+      toast.error("请输入比赛 ID");
+      return;
+    }
+    if (!nodeId || !nodeId.trim()) {
+      toast.error("请先在设置中配置 Node ID（点击右下角齿轮图标）");
       return;
     }
     addToPlaylist.mutate({
       eventId: newMatchId.trim(),
       eventType: "match",
-      nodeId: nodeId ? parseInt(nodeId, 10) : undefined,
+      nodeId: parseInt(nodeId, 10),
     });
   };
 
@@ -266,7 +279,7 @@ export default function ReplayTester() {
             <h2 className="font-semibold mb-3">回放列表</h2>
             <div className="flex gap-2">
               <Input
-                placeholder="输入比赛 ID (如: 12345678)"
+                placeholder="输入比赛 ID (如: sr:match:65271080)"
                 value={newMatchId}
                 onChange={(e) => setNewMatchId(e.target.value)}
                 onKeyDown={(e) => {
@@ -284,13 +297,14 @@ export default function ReplayTester() {
           <ScrollArea className="flex-1">
             <div className="p-4 space-y-2">
               {playlist?.events && playlist.events.length > 0 ? (
-                playlist.events.map((event: any, index: number) => (
+                playlist.events.map((event: any, index: number) => {
+                  const eventId = typeof event === 'string' ? event : event.id;
+                  return (
                   <Card key={index} className="p-3 hover:bg-accent/50 transition-colors">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">
-                          {event.id || `Match ${index + 1}`}
-                        </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{eventId}</div>
+                        <div className="text-xs text-muted-foreground">添加时间: {new Date().toLocaleString()}</div>
                         <div className="text-xs text-muted-foreground mt-1">
                           {event.type || "match"}
                         </div>
@@ -298,14 +312,15 @@ export default function ReplayTester() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => handleRemoveMatch(event.id)}
+                        className="h-8 w-8"
+                        onClick={() => removeFromPlaylist.mutate({ eventId })}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </Card>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-center text-muted-foreground text-sm py-8">
                   暂无比赛
