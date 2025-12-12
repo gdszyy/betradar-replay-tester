@@ -99,19 +99,29 @@ export const replayRouter = router({
       z.object({
         eventId: z.string(),
         eventType: z.enum(["match", "stage", "season", "tournament"]).default("match"),
+        nodeId: z.number().optional(),
       })
     )
     .mutation(async ({ input }) => {
       try {
+        // Build URL with optional node_id parameter
+        let endpoint = `/replay/events/${input.eventId}`;
+        if (input.nodeId) {
+          endpoint += `?node_id=${input.nodeId}`;
+        }
+        
         // Add to Betradar replay
-        await callBetradarAPI(`/replay/events/${input.eventId}`, {
+        await callBetradarAPI(endpoint, {
           method: "PUT",
         });
 
         // Also save to database
         let session = await getActiveReplaySession();
         if (!session) {
-          session = await createReplaySession({ status: 'idle' });
+          session = await createReplaySession({ 
+            status: 'idle', 
+            nodeId: input.nodeId ? input.nodeId.toString() : undefined 
+          });
         }
         if (session) {
           await dbAddToPlaylist({ sessionId: session.id, matchId: input.eventId });

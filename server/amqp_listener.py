@@ -18,11 +18,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuration
-REPLAY_MQ_HOST = os.getenv("REPLAY_MQ_HOST", "global.replaymq.betradar.com")
+REPLAY_MQ_HOST = os.getenv("REPLAY_MQ_HOST", "replaymq.betradar.com")
 BETRADAR_ACCESS_TOKEN = os.getenv("BETRADAR_ACCESS_TOKEN", "oIUENTCkk9nCIv92uQ")
 ROUTING_KEYS = os.getenv("ROUTING_KEYS", "#")  # Listen to all messages by default
 WEBSOCKET_SERVER_URL = os.getenv("WEBSOCKET_SERVER_URL", "http://localhost:3000")
 DATABASE_API_URL = os.getenv("DATABASE_API_URL", "http://localhost:3000/api/trpc")
+VIRTUAL_HOST = os.getenv("VIRTUAL_HOST", "/unifiedfeed/45426")
 
 
 class AMQPListener:
@@ -44,12 +45,18 @@ class AMQPListener:
                 password=""
             )
             
+            import ssl
+            
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            
             parameters = pika.ConnectionParameters(
                 host=REPLAY_MQ_HOST,
                 port=5671,
-                virtual_host="/",
+                virtual_host=VIRTUAL_HOST,
                 credentials=credentials,
-                ssl_options=pika.SSLOptions(),
+                ssl_options=pika.SSLOptions(ssl_context),
                 heartbeat=60,
                 blocked_connection_timeout=300,
             )

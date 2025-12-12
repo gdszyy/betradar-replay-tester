@@ -199,6 +199,7 @@ export default function ReplayTester() {
     addToPlaylist.mutate({
       eventId: newMatchId.trim(),
       eventType: "match",
+      nodeId: nodeId ? parseInt(nodeId, 10) : undefined,
     });
   };
 
