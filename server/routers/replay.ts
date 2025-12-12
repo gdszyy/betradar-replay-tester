@@ -169,8 +169,9 @@ export const replayRouter = router({
         speed: z.number().min(1).max(100).default(10),
         maxDelay: z.number().min(1000).max(60000).default(10000),
         useReplayTimestamp: z.boolean().default(false),
+        runParallel: z.boolean().default(false),
         nodeId: z.number().optional(),
-        productFilter: z.array(z.string()).optional(),
+        product: z.number().optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -179,13 +180,14 @@ export const replayRouter = router({
         params.append("speed", input.speed.toString());
         params.append("max_delay", input.maxDelay.toString());
         params.append("use_replay_timestamp", input.useReplayTimestamp.toString());
+        params.append("run_parallel", input.runParallel.toString());
         
         if (input.nodeId) {
           params.append("node_id", input.nodeId.toString());
         }
         
-        if (input.productFilter && input.productFilter.length > 0) {
-          params.append("product", input.productFilter.join(","));
+        if (input.product) {
+          params.append("product", input.product.toString());
         }
 
         await callBetradarAPI(`/replay/play?${params.toString()}`, {

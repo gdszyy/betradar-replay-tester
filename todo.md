@@ -188,3 +188,18 @@
 - [x] 修复 Betradar API 认证（使用 x-access-token header）
 - [x] 优化前端 API 错误处理（避免频繁错误提示）
 - [x] 验证所有 API 端点正常工作
+
+## 新功能和修复（2024-12-12）
+
+- [x] 修复 WebSocket 连接问题（WebSocket 已正常连接）
+- [x] 添加 Replay 播放参数配置界面
+  - [x] speed（播放速度，默认 10）
+  - [x] max_delay（最大消息延迟，默认 10000ms）
+  - [x] node_id（节点 ID）
+  - [x] product（产品过滤）
+  - [x] use_replay_timestamp（使用当前时间戳，默认 false）
+  - [x] run_parallel（并行播放，默认 false）
+- [x] 更新后端 start API 支持所有参数
+- [x] 测试比赛添加和播放功能（所有测试通过）
+- [ ] 启动 AMQP 监听器接收消息（需要用户手动启动）
+- [ ] 验证 AMQP 消息接收和展示

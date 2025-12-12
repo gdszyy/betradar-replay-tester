@@ -22,9 +22,11 @@ import {
   RefreshCw,
   Activity,
   Clock,
-  Zap
+  Zap,
+  Settings
 } from "lucide-react";
 import { toast } from "sonner";
+import { ReplaySettingsDialog } from "@/components/ReplaySettingsDialog";
 
 interface Message {
   id: number;
@@ -45,6 +47,11 @@ export default function ReplayTester() {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [replayStatus, setReplayStatus] = useState<string>("idle");
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(10);
+  const [maxDelay, setMaxDelay] = useState<number>(10000);
+  const [useReplayTimestamp, setUseReplayTimestamp] = useState<boolean>(false);
+  const [runParallel, setRunParallel] = useState<boolean>(false);
+  const [nodeId, setNodeId] = useState<string>("");
+  const [product, setProduct] = useState<string>("");
   const [newMatchId, setNewMatchId] = useState<string>("");
   const [selectedMatchFilter, setSelectedMatchFilter] = useState<string>("all");
 
@@ -158,11 +165,22 @@ export default function ReplayTester() {
 
   // Handle playback control
   const handlePlay = () => {
-    startReplay.mutate({
+    const params: any = {
       speed: playbackSpeed,
-      maxDelay: 10000,
-      useReplayTimestamp: false,
-    });
+      maxDelay: maxDelay,
+      useReplayTimestamp: useReplayTimestamp,
+      runParallel: runParallel,
+    };
+    
+    if (nodeId.trim()) {
+      params.nodeId = parseInt(nodeId);
+    }
+    
+    if (product.trim()) {
+      params.product = parseInt(product);
+    }
+    
+    startReplay.mutate(params);
   };
 
   const handlePause = () => {
@@ -506,6 +524,19 @@ export default function ReplayTester() {
             </SelectContent>
           </Select>
         </div>
+
+        <ReplaySettingsDialog
+          maxDelay={maxDelay}
+          setMaxDelay={setMaxDelay}
+          useReplayTimestamp={useReplayTimestamp}
+          setUseReplayTimestamp={setUseReplayTimestamp}
+          runParallel={runParallel}
+          setRunParallel={setRunParallel}
+          nodeId={nodeId}
+          setNodeId={setNodeId}
+          product={product}
+          setProduct={setProduct}
+        />
 
         <div className="ml-auto flex items-center gap-4">
           <div className="text-sm text-muted-foreground">
