@@ -187,9 +187,10 @@ export async function getActiveReplaySession(): Promise<ReplaySession | null> {
   const db = await getDb();
   if (!db) return null;
   
+  // Get the most recent session (regardless of status)
+  // This allows users to see their playlist even when not playing
   const result = await db.select().from(replaySessions)
-    .where(eq(replaySessions.status, "playing"))
-    .orderBy(desc(replaySessions.startedAt))
+    .orderBy(desc(replaySessions.createdAt))
     .limit(1);
   return result[0] || null;
 }
